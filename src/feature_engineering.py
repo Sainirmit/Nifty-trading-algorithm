@@ -4,7 +4,6 @@ Functions for feature engineering for the Nifty 50 trading algorithm
 
 import pandas as pd
 import numpy as np
-import talib
 import pandas_ta as ta
 import logging
 import os
@@ -182,78 +181,69 @@ def add_technical_indicators(df):
         # --- Trend Indicators ---
         
         # Moving Average Convergence Divergence (MACD)
-        macd, macd_signal, macd_hist = talib.MACD(close_price, 
-                                                fastperiod=12, 
-                                                slowperiod=26, 
-                                                signalperiod=9)
+        macd, macd_signal, macd_hist = ta.macd(close_price)
         df_features['MACD'] = macd
         df_features['MACD_Signal'] = macd_signal
         df_features['MACD_Hist'] = macd_hist
         
         # Average Directional Movement Index (ADX)
-        df_features['ADX'] = talib.ADX(high_price, low_price, close_price, timeperiod=14)
+        df_features['ADX'] = ta.adx(high_price, low_price, close_price)
         
         # Parabolic SAR
-        df_features['SAR'] = talib.SAR(high_price, low_price, acceleration=0.02, maximum=0.2)
+        df_features['SAR'] = ta.sar(high_price, low_price)
         df_features['SAR_Ratio'] = df_features['Close'] / df_features['SAR']
         
         # Aroon Oscillator
-        df_features['AroonOsc'] = talib.AROONOSC(high_price, low_price, timeperiod=14)
+        df_features['AroonOsc'] = ta.aroonosc(high_price, low_price)
         
         # --- Momentum Indicators ---
         
         # Relative Strength Index (RSI)
-        df_features['RSI'] = talib.RSI(close_price, timeperiod=14)
-        df_features['RSI_7'] = talib.RSI(close_price, timeperiod=7)
+        df_features['RSI'] = ta.rsi(close_price)
         
         # Stochastic Oscillator
-        df_features['SlowK'], df_features['SlowD'] = talib.STOCH(high_price, 
-                                                               low_price, 
-                                                               close_price, 
-                                                               fastk_period=5, 
-                                                               slowk_period=3, 
-                                                               slowk_matype=0, 
-                                                               slowd_period=3, 
-                                                               slowd_matype=0)
+        df_features['SlowK'], df_features['SlowD'] = ta.stoch(high_price, low_price, close_price)
         
         # Commodity Channel Index (CCI)
-        df_features['CCI'] = talib.CCI(high_price, low_price, close_price, timeperiod=14)
+        df_features['CCI'] = ta.cci(high_price, low_price, close_price)
         
         # Money Flow Index (MFI)
-        df_features['MFI'] = talib.MFI(high_price, low_price, close_price, volume, timeperiod=14)
+        df_features['MFI'] = ta.mfi(high_price, low_price, close_price, volume)
         
         # Williams %R
-        df_features['WillR'] = talib.WILLR(high_price, low_price, close_price, timeperiod=14)
+        df_features['WillR'] = ta.willr(high_price, low_price, close_price)
         
         # Rate of Change (ROC)
-        df_features['ROC'] = talib.ROC(close_price, timeperiod=10)
-        df_features['ROC_5'] = talib.ROC(close_price, timeperiod=5)
-        df_features['ROC_21'] = talib.ROC(close_price, timeperiod=21)
+        df_features['ROC'] = ta.roc(close_price)
+        df_features['ROC_5'] = ta.roc(close_price, length=5)
+        df_features['ROC_21'] = ta.roc(close_price, length=21)
         
         # --- Volatility Indicators ---
         
         # Bollinger Bands
-        df_features['BBands_Upper'], df_features['BBands_Middle'], df_features['BBands_Lower'] = \
-            talib.BBANDS(close_price, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
+        bbands = ta.bbands(close_price)
+        df_features['BBands_Upper'] = bbands['BBU_20_2.0']
+        df_features['BBands_Middle'] = bbands['BBM_20_2.0']
+        df_features['BBands_Lower'] = bbands['BBL_20_2.0']
         
         # BB Width and %B
         df_features['BBands_Width'] = (df_features['BBands_Upper'] - df_features['BBands_Lower']) / df_features['BBands_Middle']
         df_features['BBands_PctB'] = (df_features['Close'] - df_features['BBands_Lower']) / (df_features['BBands_Upper'] - df_features['BBands_Lower'])
         
         # Average True Range (ATR)
-        df_features['ATR'] = talib.ATR(high_price, low_price, close_price, timeperiod=14)
+        df_features['ATR'] = ta.atr(high_price, low_price, close_price)
         df_features['ATR_Pct'] = df_features['ATR'] / df_features['Close'] * 100
         
         # --- Volume Indicators ---
         
         # On-Balance Volume (OBV)
-        df_features['OBV'] = talib.OBV(close_price, volume)
+        df_features['OBV'] = ta.obv(close_price, volume)
         
         # Chaikin A/D Line
-        df_features['ADLINE'] = talib.AD(high_price, low_price, close_price, volume)
+        df_features['ADLINE'] = ta.ad(high_price, low_price, close_price, volume)
         
         # Chaikin Money Flow (CMF)
-        df_features['CMF'] = talib.ADOSC(high_price, low_price, close_price, volume, fastperiod=3, slowperiod=10)
+        df_features['CMF'] = ta.cmf(high_price, low_price, close_price, volume)
         
         # --- Additional Indicators using pandas_ta ---
         
@@ -377,31 +367,31 @@ def add_candlestick_patterns(df):
     
     try:
         # Single candlestick patterns
-        df_features['CDL_DOJI'] = talib.CDLDOJI(open_price, high_price, low_price, close_price)
-        df_features['CDL_HAMMER'] = talib.CDLHAMMER(open_price, high_price, low_price, close_price)
-        df_features['CDL_INVHAMMER'] = talib.CDLINVERTEDHAMMER(open_price, high_price, low_price, close_price)
-        df_features['CDL_MARUBOZU'] = talib.CDLMARUBOZU(open_price, high_price, low_price, close_price)
-        df_features['CDL_SHOOTING_STAR'] = talib.CDLSHOOTINGSTAR(open_price, high_price, low_price, close_price)
-        df_features['CDL_SPINNING_TOP'] = talib.CDLSPINNINGTOP(open_price, high_price, low_price, close_price)
-        df_features['CDL_HANGING_MAN'] = talib.CDLHANGINGMAN(open_price, high_price, low_price, close_price)
+        df_features['CDL_DOJI'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="doji")
+        df_features['CDL_HAMMER'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="hammer")
+        df_features['CDL_INVHAMMER'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="inverted_hammer")
+        df_features['CDL_MARUBOZU'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="marubozu")
+        df_features['CDL_SHOOTING_STAR'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="shooting_star")
+        df_features['CDL_SPINNING_TOP'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="spinning_top")
+        df_features['CDL_HANGING_MAN'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="hanging_man")
         
         # Double candlestick patterns
-        df_features['CDL_ENGULFING'] = talib.CDLENGULFING(open_price, high_price, low_price, close_price)
-        df_features['CDL_HARAMI'] = talib.CDLHARAMI(open_price, high_price, low_price, close_price)
-        df_features['CDL_PIERCING'] = talib.CDLPIERCING(open_price, high_price, low_price, close_price)
-        df_features['CDL_TWEEZER_TOP'] = talib.CDLTWEEZERTOP(open_price, high_price, low_price, close_price)
-        df_features['CDL_TWEEZER_BOTTOM'] = talib.CDLTWEEZERBOTTOM(open_price, high_price, low_price, close_price)
-        df_features['CDL_DARK_CLOUD_COVER'] = talib.CDLDARKCLOUDCOVER(open_price, high_price, low_price, close_price, penetration=0.5)
+        df_features['CDL_ENGULFING'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="engulfing")
+        df_features['CDL_HARAMI'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="harami")
+        df_features['CDL_PIERCING'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="piercing")
+        df_features['CDL_TWEEZER_TOP'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="twisting_top")
+        df_features['CDL_TWEEZER_BOTTOM'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="twisting_bottom")
+        df_features['CDL_DARK_CLOUD_COVER'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="dark_cloud_cover")
         
         # Triple candlestick patterns
-        df_features['CDL_MORNING_STAR'] = talib.CDLMORNINGSTAR(open_price, high_price, low_price, close_price)
-        df_features['CDL_EVENING_STAR'] = talib.CDLEVENINGSTAR(open_price, high_price, low_price, close_price)
-        df_features['CDL_3INSIDE_UP'] = talib.CDL3INSIDE(open_price, high_price, low_price, close_price)
-        df_features['CDL_3OUTSIDE_UP'] = talib.CDL3OUTSIDE(open_price, high_price, low_price, close_price)
-        df_features['CDL_3WHITE_SOLDIERS'] = talib.CDL3WHITESOLDIERS(open_price, high_price, low_price, close_price)
-        df_features['CDL_3BLACK_CROWS'] = talib.CDL3BLACKCROWS(open_price, high_price, low_price, close_price)
-        df_features['CDL_3LINE_STRIKE'] = talib.CDL3LINESTRIKE(open_price, high_price, low_price, close_price)
-        df_features['CDL_TASUKI_GAP'] = talib.CDLTASUKIGAP(open_price, high_price, low_price, close_price)
+        df_features['CDL_MORNING_STAR'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="morning_star")
+        df_features['CDL_EVENING_STAR'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="evening_star")
+        df_features['CDL_3INSIDE_UP'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="three_inside_up")
+        df_features['CDL_3OUTSIDE_UP'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="three_outside_up")
+        df_features['CDL_3WHITESOLDIERS'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="three_white_soldiers")
+        df_features['CDL_3BLACK_CROWS'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="three_black_crows")
+        df_features['CDL_3LINE_STRIKE'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="three_line_strike")
+        df_features['CDL_TASUKI_GAP'] = ta.cdl_pattern(open_price, high_price, low_price, close_price, name="tasuki_gap")
         
         # Normalize pattern signals to -1, 0, 1
         pattern_columns = [col for col in df_features.columns if col.startswith('CDL_')]
@@ -411,7 +401,7 @@ def add_candlestick_patterns(df):
         # Separate bullish and bearish patterns for easier analysis
         bullish_patterns = [
             'CDL_HAMMER', 'CDL_INVHAMMER', 'CDL_PIERCING', 'CDL_MORNING_STAR',
-            'CDL_3WHITE_SOLDIERS', 'CDL_3INSIDE_UP', 'CDL_3OUTSIDE_UP',
+            'CDL_3WHITESOLDIERS', 'CDL_3INSIDE_UP', 'CDL_3OUTSIDE_UP',
             'CDL_TWEEZER_BOTTOM'
         ]
         
